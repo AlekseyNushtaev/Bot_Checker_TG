@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from config import API_ID, API_HASH
 from db.models import Session, Accaunt
+from bot import bot as botsender
 
 # Настройки сессии (можно изменить название)
 SESSION_NAME = "my_userbot"
@@ -21,6 +22,7 @@ async def main():
     )
     async with app:
         while True:
+            await botsender.send_message(1012882762, 'новый цикл юзербота')
             async with Session() as session:
                 result = await session.execute(select(Accaunt))
                 accounts = result.scalars().all()
