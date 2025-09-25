@@ -148,6 +148,6 @@ async def all_accs(message: Message, state: FSMContext):
             if account.account_type == 'bot':
                 text = f'Бот {account.tg_username}'
                 mes_.append(text)
-
-    await message.answer('\n'.join(mes_), reply_markup=get_admin_keyboard())
+    if mes_:
+        await message.answer('\n'.join(mes_), reply_markup=get_admin_keyboard())
 
