@@ -49,7 +49,7 @@ async def main():
                             account.is_deleted = True
                     await session.commit()
                     await asyncio.sleep(2)
-            await asyncio.sleep(60)
+            await asyncio.sleep(900)
 
 
 if __name__ == '__main__':

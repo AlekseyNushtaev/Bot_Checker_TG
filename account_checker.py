@@ -44,4 +44,4 @@ async def account_checker():
                 except:
                     pass
 
-        await asyncio.sleep(30)  # Ожидание до следующего цикла
+        await asyncio.sleep(1000)  # Ожидание до следующего цикла
