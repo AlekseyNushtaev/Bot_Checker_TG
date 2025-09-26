@@ -15,11 +15,19 @@ async def account_checker():
             result = await session.execute(select(Accaunt).where(Accaunt.is_deleted == True))
             accounts = result.scalars().all()
             text = []
-            print(len(accounts))
             for account in accounts:
-                print(account.is_deleted)
-                text_ = f"Бот {account.tg_username} не существует"
+                if account.account_type == 'bot':
+                    if account.tg_id:
+                        text_ = f"Бот {account.tg_username} удален"
+                    else:
+                        text_ = f"Бот {account.tg_username} не существует"
+                elif account.account_type == 'chanel':
+                    if account.title:
+                        text_ = f"Канал c id {account.tg_id} {account.title} удален"
+                    else:
+                        text_ = f"Канал c id {account.tg_id} не существует или юзербот не в нем"
                 text.append(text_)
+
             msg = '\n'.join(text)
             for admin_id in ADMIN_IDS:
                 try:
@@ -36,4 +44,4 @@ async def account_checker():
                 except:
                     pass
 
-        await asyncio.sleep(1000)  # Ожидание до следующего цикла
+        await asyncio.sleep(30)  # Ожидание до следующего цикла

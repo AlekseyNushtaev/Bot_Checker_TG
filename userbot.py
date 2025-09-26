@@ -31,13 +31,25 @@ async def main():
                         try:
                             bot = await app.get_chat(account.tg_username)
                             account.is_deleted = False
+                            account.tg_id = bot.id
                             print(bot.username)
                         except Exception as e:
                             print(e)
                             account.is_deleted = True
-                        await session.commit()
+                    elif account.account_type == 'chanel':
+                        try:
+                            account.is_deleted = True
+                            async for dialog in app.get_dialogs():
+                                if dialog.chat.id == account.tg_id:
+                                    account.is_deleted = False
+                                    account.title = dialog.chat.title
+                                    break
+                        except:
+                            print(e)
+                            account.is_deleted = True
+                    await session.commit()
                     await asyncio.sleep(2)
-            await asyncio.sleep(900)
+            await asyncio.sleep(60)
 
 
 if __name__ == '__main__':

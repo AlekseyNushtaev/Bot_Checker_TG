@@ -80,7 +80,9 @@ async def handle_password(message: Message):
 @router.message(F.text == "📥 Добавить аккаунт", F.from_user.id.in_(ADMIN_IDS))
 async def add_acc_start(message: Message, state: FSMContext):
     await message.answer(
-        "Введите юзернейм бота (начинается с @)",
+        "Введите на выбор:"
+        "1. Юзернейм бота (начинается с @)"
+        "2. ID канала (начинается с -100, юзербот должен быть в канале)",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(AdminStates.waiting_for_account_identifier)
@@ -96,8 +98,14 @@ async def add_acc_finish(message: Message, state: FSMContext):
                 session.add(accaunt)
                 await session.commit()
                 await message.answer(f"Бот {identifier} добавлен", reply_markup=get_admin_keyboard())
+        elif identifier.startswith('-100'):
+            async with Session() as session:
+                accaunt = Accaunt(tg_id=int(identifier), account_type='chanel')
+                session.add(accaunt)
+                await session.commit()
+                await message.answer(f"Канал с id {identifier} добавлен", reply_markup=get_admin_keyboard())
         else:
-            await message.answer("Имя бота должно начинается с @", reply_markup=get_admin_keyboard())
+            await message.answer("Имя аккаунта не валидно", reply_markup=get_admin_keyboard())
 
     except IntegrityError:
         await message.answer("Этот аккаунт уже существует в базе", reply_markup=get_admin_keyboard())
@@ -108,7 +116,7 @@ async def add_acc_finish(message: Message, state: FSMContext):
 @router.message(F.text == "🗑️ Удалить аккаунт", F.from_user.id.in_(ADMIN_IDS))
 async def remove_acc_start(message: Message, state: FSMContext):
     await message.answer(
-        "Введите юзернейм бота для удаления (начинается с @).",
+        "Введите аккаунт для удаления.",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(AdminStates.waiting_for_account_remove)
@@ -130,8 +138,20 @@ async def remove_acc_finish(message: Message, state: FSMContext):
                     await message.answer(f"Бот {account} удален из базы", reply_markup=get_admin_keyboard())
                 else:
                     await message.answer(f"Бот {account} не найден в базе", reply_markup=get_admin_keyboard())
+        elif account.startswith('-100'):
+            async with Session() as session:
+                result = await session.execute(
+                    delete(Accaunt).where(Accaunt.tg_id == int(account))
+                )
+
+                await session.commit()
+
+                if result.rowcount > 0:
+                    await message.answer(f"Канал с id {account} удален из базы", reply_markup=get_admin_keyboard())
+                else:
+                    await message.answer(f"Канал с id {account} не найден в базе", reply_markup=get_admin_keyboard())
         else:
-            await message.answer("Имя бота должно начинается с @", reply_markup=get_admin_keyboard())
+            await message.answer("Имя аккаунта не валидно", reply_markup=get_admin_keyboard())
     except:
         pass
     finally:
@@ -147,6 +167,9 @@ async def all_accs(message: Message, state: FSMContext):
         for account in accounts:
             if account.account_type == 'bot':
                 text = f'Бот {account.tg_username}'
+                mes_.append(text)
+            elif account.account_type == 'chanel':
+                text = f'Канал c id {account.tg_id} {account.title}'
                 mes_.append(text)
     if mes_:
         await message.answer('\n'.join(mes_), reply_markup=get_admin_keyboard())
