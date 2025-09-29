@@ -26,7 +26,7 @@ async def main():
             print(1)
             if dialog.chat.id == tg_id:
                 print(dialog.chat.username)
-                print(dialog.chat.title)
+                print(dialog.chat.id)
 
 
 

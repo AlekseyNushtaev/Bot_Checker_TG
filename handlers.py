@@ -12,6 +12,21 @@ from config import ADMIN_IDS, USER_PASS
 router = Router()
 
 
+async def get_active_users():
+    users = []
+    async with Session() as session:
+        result = await session.execute(select(User).where(User.is_active == True))
+        active_users = result.scalars().all()
+
+        for user in active_users:
+            users.append(user.user_id)
+
+    for admin_id in ADMIN_IDS:
+        users.append(admin_id)
+    return users
+
+
+
 # Клавиатура для администраторов
 def get_admin_keyboard():
     keyboard = ReplyKeyboardMarkup(
@@ -34,8 +49,8 @@ class AdminStates(StatesGroup):
 async def start_command(message: Message, state: FSMContext):
     # Сброс любых активных состояний
     await state.clear()
-
-    if message.from_user.id in ADMIN_IDS:
+    users = await get_active_users()
+    if message.from_user.id in users:
         # Администраторы получают специальную клавиатуру
         await message.answer(
             "Добро пожаловать, администратор!",
@@ -60,25 +75,11 @@ async def start_command(message: Message, state: FSMContext):
                 await message.answer("Введите пароль для активации:")
 
 
-@router.message(F.text, ~F.from_user.id.in_(ADMIN_IDS))
-async def handle_password(message: Message):
-    async with Session() as session:
-        result = await session.execute(
-            select(User).where(User.user_id == message.from_user.id)
-        )
-        user = result.scalar_one_or_none()
-
-        if user and not user.is_active:
-            if message.text == USER_PASS:
-                user.is_active = True
-                await session.commit()
-                await message.answer("Пароль верный! Вы активированы.")
-            else:
-                await message.answer("Неверный пароль. Попробуйте еще раз.")
-
-
-@router.message(F.text == "📥 Добавить аккаунт", F.from_user.id.in_(ADMIN_IDS))
+@router.message(F.text == "📥 Добавить аккаунт")
 async def add_acc_start(message: Message, state: FSMContext):
+    users = await get_active_users()
+    if message.from_user.id not in users:
+        return
     await message.answer(
         "Введите на выбор:\n"
         "1. Юзернейм бота (начинается с @)\n"
@@ -89,7 +90,7 @@ async def add_acc_start(message: Message, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_account_identifier)
 
 
-@router.message(AdminStates.waiting_for_account_identifier, F.from_user.id.in_(ADMIN_IDS))
+@router.message(AdminStates.waiting_for_account_identifier)
 async def add_acc_finish(message: Message, state: FSMContext):
     try:
         identifier = message.text
@@ -120,8 +121,11 @@ async def add_acc_finish(message: Message, state: FSMContext):
         await state.clear()
 
 
-@router.message(F.text == "🗑️ Удалить аккаунт", F.from_user.id.in_(ADMIN_IDS))
+@router.message(F.text == "🗑️ Удалить аккаунт")
 async def remove_acc_start(message: Message, state: FSMContext):
+    users = await get_active_users()
+    if message.from_user.id not in users:
+        return
     await message.answer(
         "Введите аккаунт для удаления.",
         reply_markup=ReplyKeyboardRemove()
@@ -129,7 +133,7 @@ async def remove_acc_start(message: Message, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_account_remove)
 
 
-@router.message(AdminStates.waiting_for_account_remove, F.from_user.id.in_(ADMIN_IDS))
+@router.message(AdminStates.waiting_for_account_remove)
 async def remove_acc_finish(message: Message, state: FSMContext):
     try:
         account = message.text
@@ -177,8 +181,12 @@ async def remove_acc_finish(message: Message, state: FSMContext):
         await state.clear()
 
 
-@router.message(F.text == "📊 Все аккаунты", F.from_user.id.in_(ADMIN_IDS))
+@router.message(F.text == "📊 Все аккаунты")
 async def all_accs(message: Message, state: FSMContext):
+    users = await get_active_users()
+    print(users)
+    if message.from_user.id not in users:
+        return
     async with Session() as session:
         result = await session.execute(select(Accaunt))
         accounts = result.scalars().all()
@@ -196,3 +204,19 @@ async def all_accs(message: Message, state: FSMContext):
     if mes_:
         await message.answer('\n'.join(mes_), reply_markup=get_admin_keyboard())
 
+
+@router.message(F.text, ~F.from_user.id.in_(ADMIN_IDS))
+async def handle_password(message: Message):
+    async with Session() as session:
+        result = await session.execute(
+            select(User).where(User.user_id == message.from_user.id)
+        )
+        user = result.scalar_one_or_none()
+
+        if user and not user.is_active:
+            if message.text == USER_PASS:
+                user.is_active = True
+                await session.commit()
+                await message.answer("Пароль верный! Вы активированы.", reply_markup=get_admin_keyboard())
+            else:
+                await message.answer("Неверный пароль. Попробуйте еще раз.")
