@@ -20,14 +20,13 @@ async def main():
         system_version="1.0",
         app_version="1.0.0"
     )
-    tg_id = -1003139656688
+    tg_id = 7715104509
     async with app:
-        await botsender.send_message(1012882762, 'новый цикл юзербота')
-        try:
-            bot = await app.get_chat(tg_id)
-            print(bot.title)
-        except Exception as e:
-            print(e)
+        async for dialog in app.get_dialogs():
+            print(1)
+            if dialog.chat.id == tg_id:
+                print(dialog.chat.username)
+                print(dialog.chat.id)
 
 
 

@@ -26,6 +26,11 @@ async def account_checker():
                         text_ = f"Канал c id {account.tg_id} {account.title} удален"
                     else:
                         text_ = f"Канал c id {account.tg_id} не существует или юзербот не в нем"
+                elif account.account_type == 'user':
+                    if account.username:
+                        text_ = f"Аккаунт юзера c id {account.tg_id} {account.username} удален"
+                    else:
+                        text_ = f"Аккаунт юзера c id {account.tg_id} не существует или юзербот не написал ему в личку"
                 text.append(text_)
 
             msg = '\n'.join(text)

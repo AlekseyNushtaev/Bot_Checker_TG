@@ -47,6 +47,17 @@ async def main():
                         except:
                             print(e)
                             account.is_deleted = True
+                    elif account.account_type == 'user':
+                        try:
+                            account.is_deleted = True
+                            async for dialog in app.get_dialogs():
+                                if dialog.chat.id == account.tg_id:
+                                    account.is_deleted = False
+                                    account.title = dialog.chat.title
+                                    break
+                        except:
+                            print(e)
+                            account.is_deleted = True
                     await session.commit()
                     await asyncio.sleep(2)
             await asyncio.sleep(900)
